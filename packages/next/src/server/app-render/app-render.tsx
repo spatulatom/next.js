@@ -59,7 +59,10 @@ import {
   createTrackedMetadataContext,
   createMetadataContext,
 } from '../../lib/metadata/metadata-context'
-import { createRequestStoreForRender } from '../async-storage/request-store'
+import {
+  createRequestCookies,
+  createRequestStoreForRender,
+} from '../async-storage/request-store'
 import { createWorkStore } from '../async-storage/work-store'
 import {
   getAccessFallbackErrorTypeByStatus,
@@ -718,6 +721,7 @@ async function warmupDevRender(
     tags: [],
     prerenderResumeDataCache,
     hmrRefreshHash: req.cookies[NEXT_HMR_REFRESH_HASH_COOKIE],
+    cookies: createRequestCookies(req),
   }
 
   const rscPayload = await workUnitAsyncStorage.run(
@@ -2247,6 +2251,7 @@ async function spawnDynamicValidationInDev(
     tags: [],
     prerenderResumeDataCache,
     hmrRefreshHash,
+    cookies: undefined,
   }
 
   const initialClientController = new AbortController()
@@ -2265,6 +2270,7 @@ async function spawnDynamicValidationInDev(
     tags: [],
     prerenderResumeDataCache,
     hmrRefreshHash,
+    cookies: undefined,
   }
 
   // We're not going to use the result of this render because the only time it could be used
@@ -2411,6 +2417,7 @@ async function spawnDynamicValidationInDev(
     tags: [],
     prerenderResumeDataCache,
     hmrRefreshHash,
+    cookies: undefined,
   }
 
   const finalClientController = new AbortController()
@@ -2433,6 +2440,7 @@ async function spawnDynamicValidationInDev(
     tags: [],
     prerenderResumeDataCache,
     hmrRefreshHash,
+    cookies: undefined,
   }
 
   const finalServerPayload = await workUnitAsyncStorage.run(
@@ -2763,6 +2771,7 @@ async function prerenderToStream(
           tags: [...implicitTags.tags],
           prerenderResumeDataCache,
           hmrRefreshHash: undefined,
+          cookies: undefined,
         })
 
         // We're not going to use the result of this render because the only time it could be used
@@ -2860,6 +2869,7 @@ async function prerenderToStream(
             tags: [...implicitTags.tags],
             prerenderResumeDataCache,
             hmrRefreshHash: undefined,
+            cookies: undefined,
           }
 
           const prerender = require('react-dom/static.edge')
@@ -2948,6 +2958,7 @@ async function prerenderToStream(
           tags: [...implicitTags.tags],
           prerenderResumeDataCache,
           hmrRefreshHash: undefined,
+          cookies: undefined,
         })
 
         const finalAttemptRSCPayload = await workUnitAsyncStorage.run(
@@ -3018,6 +3029,7 @@ async function prerenderToStream(
           tags: [...implicitTags.tags],
           prerenderResumeDataCache,
           hmrRefreshHash: undefined,
+          cookies: undefined,
         }
 
         let clientIsDynamic = false
@@ -3265,6 +3277,7 @@ async function prerenderToStream(
           tags: [...implicitTags.tags],
           prerenderResumeDataCache,
           hmrRefreshHash: undefined,
+          cookies: undefined,
         })
 
         const initialClientController = new AbortController()
@@ -3283,6 +3296,7 @@ async function prerenderToStream(
           tags: [...implicitTags.tags],
           prerenderResumeDataCache,
           hmrRefreshHash: undefined,
+          cookies: undefined,
         })
 
         // We're not going to use the result of this render because the only time it could be used
@@ -3441,6 +3455,7 @@ async function prerenderToStream(
           tags: [...implicitTags.tags],
           prerenderResumeDataCache,
           hmrRefreshHash: undefined,
+          cookies: undefined,
         })
 
         let clientIsDynamic = false
@@ -3466,6 +3481,7 @@ async function prerenderToStream(
           tags: [...implicitTags.tags],
           prerenderResumeDataCache,
           hmrRefreshHash: undefined,
+          cookies: undefined,
         })
 
         const finalServerPayload = await workUnitAsyncStorage.run(
