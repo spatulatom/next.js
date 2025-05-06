@@ -3095,10 +3095,10 @@ async function prerenderToStream(
         const { prelude, preludeIsEmpty } =
           await processPrelude(unprocessedPrelude)
 
-        // If we've disabled throwing on empty static shell, then we don't need to
-        // track any dynamic access that occurs above the suspense boundary because
+        // If we're allowing an empty static shell, then we don't need to track
+        // any dynamic access that occurs above the suspense boundary because
         // we'll do so in the route shell.
-        if (!ctx.renderOpts.doNotThrowOnEmptyStaticShell) {
+        if (!ctx.renderOpts.allowEmptyStaticShell) {
           throwIfDisallowedDynamic(
             workStore,
             preludeIsEmpty,
@@ -3589,10 +3589,10 @@ async function prerenderToStream(
           }
         }
 
-        // If we've disabled throwing on empty static shell, then we don't need to
-        // track any dynamic access that occurs above the suspense boundary because
+        // If we're allowing an empty static shell, then we don't need to track
+        // any dynamic access that occurs above the suspense boundary because
         // we'll do so in the route shell.
-        if (!ctx.renderOpts.doNotThrowOnEmptyStaticShell) {
+        if (!ctx.renderOpts.allowEmptyStaticShell) {
           // We don't have a shell because the root errored when we aborted.
           throwIfDisallowedDynamic(
             workStore,
