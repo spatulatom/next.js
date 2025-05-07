@@ -187,7 +187,6 @@ import {
 } from '../resume-data-cache/resume-data-cache'
 import type { MetadataErrorType } from '../../lib/metadata/resolve-metadata'
 import isError from '../../lib/is-error'
-import { isUseCacheTimeoutError } from '../use-cache/use-cache-errors'
 import { createServerInsertedMetadata } from './metadata-insertion/create-server-inserted-metadata'
 import { getPreviouslyRevalidatedTags } from '../server-utils'
 import { executeRevalidates } from '../revalidation-utils'
@@ -631,7 +630,6 @@ async function generateDynamicFlightRenderResult(
       ctx,
       false,
       ctx.clientReferenceManifest,
-      ctx.workStore.route,
       requestStore
     )
   }
@@ -1384,7 +1382,6 @@ async function renderToHTMLOrFlightImpl(
       res,
       ctx,
       metadata,
-      workStore,
       loaderTree
     )
 
@@ -1404,8 +1401,8 @@ async function renderToHTMLOrFlightImpl(
 
     // If we encountered any unexpected errors during build we fail the
     // prerendering phase and the build.
-    if (workStore.invalidUsageError) {
-      throw workStore.invalidUsageError
+    if (workStore.invalidDynamicUsageError) {
+      throw workStore.invalidDynamicUsageError
     }
     if (response.digestErrorsMap.size) {
       const buildFailingError = response.digestErrorsMap.values().next().value
@@ -1558,7 +1555,6 @@ async function renderToHTMLOrFlightImpl(
             req,
             res,
             ctx,
-            workStore,
             notFoundLoaderTree,
             formState,
             postponedState
@@ -1585,14 +1581,13 @@ async function renderToHTMLOrFlightImpl(
       req,
       res,
       ctx,
-      workStore,
       loaderTree,
       formState,
       postponedState
     )
 
-    if (workStore.invalidUsageError) {
-      throw workStore.invalidUsageError
+    if (workStore.invalidDynamicUsageError) {
+      throw workStore.invalidDynamicUsageError
     }
 
     // If we have pending revalidates, wait until they are all resolved.
@@ -1721,7 +1716,6 @@ async function renderToStream(
   req: BaseNextRequest,
   res: BaseNextResponse,
   ctx: AppRenderContext,
-  workStore: WorkStore,
   tree: LoaderTree,
   formState: any,
   postponedState: PostponedState | null
@@ -1867,7 +1861,6 @@ async function renderToStream(
         ctx,
         res.statusCode === 404,
         clientReferenceManifest,
-        workStore.route,
         requestStore
       )
 
@@ -2214,10 +2207,9 @@ async function spawnDynamicValidationInDev(
   ctx: AppRenderContext,
   isNotFound: boolean,
   clientReferenceManifest: NonNullable<RenderOpts['clientReferenceManifest']>,
-  route: string,
   requestStore: RequestStore
 ): Promise<void> {
-  const { componentMod: ComponentMod, implicitTags } = ctx
+  const { componentMod: ComponentMod, implicitTags, workStore } = ctx
   const rootParams = getRootParams(
     ComponentMod.tree,
     ctx.getDynamicParamFromSegment
@@ -2311,7 +2303,7 @@ async function spawnDynamicValidationInDev(
             process.env.NEXT_DEBUG_BUILD ||
             process.env.__NEXT_VERBOSE_LOGGING
           ) {
-            printDebugThrownValueForProspectiveRender(err, route)
+            printDebugThrownValueForProspectiveRender(err, workStore.route)
           }
         },
         signal: initialServerRenderController.signal,
@@ -2329,7 +2321,7 @@ async function spawnDynamicValidationInDev(
     ) {
       // We don't normally log these errors because we are going to retry anyway but
       // it can be useful for debugging Next.js itself to get visibility here when needed
-      printDebugThrownValueForProspectiveRender(err, route)
+      printDebugThrownValueForProspectiveRender(err, workStore.route)
     }
   }
 
@@ -2369,7 +2361,7 @@ async function spawnDynamicValidationInDev(
           ) {
             // We don't normally log these errors because we are going to retry anyway but
             // it can be useful for debugging Next.js itself to get visibility here when needed
-            printDebugThrownValueForProspectiveRender(err, route)
+            printDebugThrownValueForProspectiveRender(err, workStore.route)
           }
         },
       }
@@ -2381,7 +2373,7 @@ async function spawnDynamicValidationInDev(
         // We're going to retry to so we normally would suppress this error but
         // when verbose logging is on we print it
         if (process.env.__NEXT_VERBOSE_LOGGING) {
-          printDebugThrownValueForProspectiveRender(err, route)
+          printDebugThrownValueForProspectiveRender(err, workStore.route)
         }
       }
     })
@@ -2461,10 +2453,6 @@ async function spawnDynamicValidationInDev(
         clientReferenceManifest.clientModules,
         {
           onError: (err) => {
-            if (isUseCacheTimeoutError(err)) {
-              return err.digest
-            }
-
             if (
               finalServerController.signal.aborted &&
               isPrerenderInterruptedError(err)
@@ -2505,12 +2493,6 @@ async function spawnDynamicValidationInDev(
           {
             signal: finalClientController.signal,
             onError: (err, errorInfo) => {
-              if (isUseCacheTimeoutError(err)) {
-                dynamicValidation.dynamicErrors.push(err)
-
-                return
-              }
-
               if (
                 isPrerenderInterruptedError(err) ||
                 finalClientController.signal.aborted
@@ -2525,7 +2507,7 @@ async function spawnDynamicValidationInDev(
                 const componentStack = errorInfo.componentStack
                 if (typeof componentStack === 'string') {
                   trackAllowedDynamicAccess(
-                    route,
+                    workStore.route,
                     componentStack,
                     dynamicValidation
                   )
@@ -2566,7 +2548,7 @@ async function spawnDynamicValidationInDev(
       // track any dynamic access that occurs above the suspense boundary because
       // we'll do so in the route shell.
       throwIfDisallowedDynamic(
-        route,
+        workStore,
         preludeIsEmpty,
         dynamicValidation,
         serverDynamicTracking,
@@ -2605,7 +2587,6 @@ async function prerenderToStream(
   res: BaseNextResponse,
   ctx: AppRenderContext,
   metadata: AppPageRenderResultMetadata,
-  workStore: WorkStore,
   tree: LoaderTree
 ): Promise<PrerenderToStreamResult> {
   // When prerendering formState is always null. We still include it
@@ -2620,6 +2601,7 @@ async function prerenderToStream(
     nonce,
     pagePath,
     renderOpts,
+    workStore,
   } = ctx
 
   const rootParams = getRootParams(tree, getDynamicParamFromSegment)
@@ -2833,6 +2815,12 @@ async function prerenderToStream(
 
         initialServerRenderController.abort()
         initialServerPrerenderController.abort()
+
+        // We don't need to continue the prerender process if we already
+        // detected invalid dynamic usage in the initial prerender phase.
+        if (workStore.invalidDynamicUsageError) {
+          throw workStore.invalidDynamicUsageError
+        }
 
         let initialServerResult
         try {
@@ -3100,7 +3088,7 @@ async function prerenderToStream(
         // we'll do so in the route shell.
         if (!ctx.renderOpts.doNotThrowOnEmptyStaticShell) {
           throwIfDisallowedDynamic(
-            workStore.route,
+            workStore,
             preludeIsEmpty,
             dynamicValidation,
             serverDynamicTracking,
@@ -3422,6 +3410,12 @@ async function prerenderToStream(
         initialServerRenderController.abort()
         initialServerPrerenderController.abort()
 
+        // We don't need to continue the prerender process if we already
+        // detected invalid dynamic usage in the initial prerender phase.
+        if (workStore.invalidDynamicUsageError) {
+          throw workStore.invalidDynamicUsageError
+        }
+
         // We've now filled caches and triggered any inadvertant sync bailouts
         // due to lazy module initialization. We can restart our render to capture results
 
@@ -3585,7 +3579,7 @@ async function prerenderToStream(
         if (!ctx.renderOpts.doNotThrowOnEmptyStaticShell) {
           // We don't have a shell because the root errored when we aborted.
           throwIfDisallowedDynamic(
-            workStore.route,
+            workStore,
             preludeIsEmpty,
             dynamicValidation,
             serverDynamicTracking,
