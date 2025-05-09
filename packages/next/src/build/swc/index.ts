@@ -21,9 +21,10 @@ import {
   getDefineEnv,
 } from '../webpack/plugins/define-env-plugin'
 import { getReactCompilerLoader } from '../get-babel-loader-config'
-import type {
-  NapiPartialProjectOptions,
-  NapiProjectOptions,
+import {
+  getLastTurbopackErrorLocation,
+  type NapiPartialProjectOptions,
+  type NapiProjectOptions,
 } from './generated-native'
 import type {
   Binding,
@@ -509,7 +510,10 @@ function bindingToApi(
     try {
       return await fn()
     } catch (nativeError: any) {
-      throw TurbopackInternalError.createAndRecordTelemetry(nativeError)
+      throw TurbopackInternalError.createAndRecordTelemetry(
+        nativeError,
+        getLastTurbopackErrorLocation() ?? undefined
+      )
     }
   }
 
@@ -577,7 +581,10 @@ function bindingToApi(
       } catch (e) {
         if (e === cancel) return
         if (e instanceof Error) {
-          throw TurbopackInternalError.createAndRecordTelemetry(e)
+          throw TurbopackInternalError.createAndRecordTelemetry(
+            e,
+            getLastTurbopackErrorLocation() ?? undefined
+          )
         }
         throw e
       } finally {

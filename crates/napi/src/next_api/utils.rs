@@ -9,8 +9,9 @@ use napi::{
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use turbo_tasks::{
-    get_effects, task_statistics::TaskStatisticsApi, trace::TraceRawVcs, Effects, OperationVc,
-    ReadRef, TaskId, TryJoinIterExt, TurboTasks, TurboTasksApi, UpdateInfo, Vc, VcValueType,
+    backend::TurboTasksExecutionError, get_effects, task_statistics::TaskStatisticsApi,
+    trace::TraceRawVcs, Effects, OperationVc, ReadRef, TaskId, TryJoinIterExt, TurboTasks,
+    TurboTasksApi, UpdateInfo, Vc, VcValueType,
 };
 use turbo_tasks_backend::{
     default_backing_storage, noop_backing_storage, DefaultBackingStorage, GitVersionInfo,
@@ -27,6 +28,18 @@ use turbopack_core::{
 };
 
 use crate::util::log_internal_error_and_inform;
+
+pub enum TurboTasksNapiErrorType {
+    IncludesLocation,
+}
+
+impl AsRef<str> for TurboTasksNapiErrorType {
+    fn as_ref(&self) -> &str {
+        match self {
+            TurboTasksNapiErrorType::IncludesLocation => "includes_location",
+        }
+    }
+}
 
 #[derive(Clone)]
 pub enum NextTurboTasks {
@@ -464,6 +477,19 @@ pub fn subscribe<T: 'static + Send + Sync, F: Future<Output = Result<T>> + Send,
 
             let status = func.call(
                 result.map_err(|e| {
+                    if let Some(err) = e
+                        .root_cause()
+                        .downcast_ref::<Arc<TurboTasksExecutionError>>()
+                    {
+                        if let TurboTasksExecutionError::Panic(panic) = err.as_ref() {
+                            if let Ok(mut error_location) =
+                                crate::next_api::LAST_ERROR_LOCATION.lock()
+                            {
+                                *error_location = panic.location.clone()
+                            }
+                        }
+                    }
+
                     log_internal_error_and_inform(&e);
                     napi::Error::from_reason(PrettyPrintError(&e).to_string())
                 }),

@@ -361,6 +361,7 @@ export interface NapiDiagnostic {
   name: string
   payload: Record<string, string>
 }
+export declare function getLastTurbopackErrorLocation(): string | null
 export declare function parse(
   src: string,
   options: Buffer,

@@ -2,6 +2,7 @@ import type { TelemetryPlugin } from '../../build/webpack/plugins/telemetry-plug
 import type { SWC_TARGET_TRIPLE } from '../../build/webpack/plugins/telemetry-plugin/telemetry-plugin'
 import type { UseCacheTrackerKey } from '../../build/webpack/plugins/telemetry-plugin/use-cache-tracker-utils'
 import { extractNextErrorCode } from '../../lib/error-telemetry-utils'
+import { TurbopackInternalError } from '../../shared/lib/turbopack/utils'
 
 const REGEXP_DIRECTORY_DUNDER =
   /[\\/]__[^\\/]+(?<![\\/]__(?:tests|mocks))__[\\/]/i
@@ -235,15 +236,20 @@ type ErrorThrownEvent = {
   eventName: typeof ERROR_THROWN_EVENT
   payload: {
     errorCode: string | undefined
+    location: string | undefined
   }
 }
 
 // Creates a Telemetry event for errors. For privacy, only includes the error code.
-export function eventErrorThrown(error: Error): ErrorThrownEvent {
+export function eventErrorThrown(
+  error: Error,
+  location: string | undefined
+): ErrorThrownEvent {
   return {
     eventName: ERROR_THROWN_EVENT,
     payload: {
       errorCode: extractNextErrorCode(error) || 'Unknown',
+      location,
     },
   }
 }

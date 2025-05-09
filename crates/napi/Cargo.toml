@@ -50,7 +50,7 @@ console-subscriber = { workspace = true, optional = true }
 dhat = { workspace = true, optional = true }
 indexmap = { workspace = true }
 owo-colors = { workspace = true }
-napi = { version = "2", default-features = false, features = [
+napi = { version = "2.16.17", default-features = false, features = [
     "napi3",
     "serde-json",
     "tokio_rt",
@@ -60,7 +60,7 @@ napi = { version = "2", default-features = false, features = [
     "napi5",
     "compat-mode"
 ] }
-napi-derive = "2"
+napi-derive = "2.16.13"
 next-custom-transforms = { workspace = true }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
