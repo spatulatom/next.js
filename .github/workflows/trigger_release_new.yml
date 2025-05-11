@@ -16,7 +16,7 @@ on:
         options:
           - canary
           - stable
-          # - release-candidate
+          - release-candidate
 
       force:
         description: Forced Release
