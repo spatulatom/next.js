@@ -53,30 +53,30 @@ For example, if you need to use the same data across a route (e.g., in a Layout,
 async function getItem() {
   // The `fetch` function is automatically memoized and the result
   // is cached
-  const res = await fetch("https://.../item/1");
-  return res.json();
+  const res = await fetch('https://.../item/1')
+  return res.json()
 }
 
 // This function is called twice, but only executed the first time
-const item = await getItem(); // cache MISS
+const item = await getItem() // cache MISS
 
 // The second call could be anywhere in your route
-const item = await getItem(); // cache HIT
+const item = await getItem() // cache HIT
 ```
 
 ```jsx filename="app/example.js" switcher
 async function getItem() {
   // The `fetch` function is automatically memoized and the result
   // is cached
-  const res = await fetch("https://.../item/1");
-  return res.json();
+  const res = await fetch('https://.../item/1')
+  return res.json()
 }
 
 // This function is called twice, but only executed the first time
-const item = await getItem(); // cache MISS
+const item = await getItem() // cache MISS
 
 // The second call could be anywhere in your route
-const item = await getItem(); // cache HIT
+const item = await getItem() // cache HIT
 ```
 
 **How Request Memoization Works**
@@ -95,6 +95,7 @@ const item = await getItem(); // cache HIT
 - Once the route has been rendered and the rendering pass is complete, memory is "reset" and all request memoization entries are cleared.
 
 > **Good to know**:>
+>
 > - Request memoization of `fetch` requests using the `GET` or `HEAD` methods is achieved with React `cache` function and custom logic - as such it is a Next.js feature. It's included here to show how it interacts with the other caching mechanisms.
 >   Note that in React itself, all memoization with React `cache` (for all types of requests, including `fetch` requests using the `GET` or `HEAD` methods) is opt-in and has to be manually implemented.
 > - Memoization only applies to the `GET` method in `fetch` requests.
@@ -118,8 +119,8 @@ Memoization only applies to the `GET` method in `fetch` requests. Other methods,
 To manage individual requests, you can use the [`signal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController/signal) property from [`AbortController`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController):
 
 ```js filename="app/example.js"
-const { signal } = new AbortController();
-fetch(url, { signal });
+const { signal } = new AbortController()
+fetch(url, { signal })
 ```
 
 ### Opting Into Memoization For All Requests
@@ -128,24 +129,25 @@ As mentioned above, default memoization in Next.js is built upon the React `cach
 However, for other `fetch` methods, or when using data-fetching libraries (such as some database, CMS, or GraphQL clients) that don't inherently memoize requests, you can use `cache` to manually memoize data requests.
 
 ```ts filename="utils/get-item.ts" switcher
-import { cache } from "react";
-import db from "@/lib/db";
+import { cache } from 'react'
+import db from '@/lib/db'
 
 export const getItem = cache(async (id: string) => {
-  const item = await db.item.findUnique({ id });
-  return item;
-});
+  const item = await db.item.findUnique({ id })
+  return item
+})
 ```
 
 ```js filename="utils/get-item.js" switcher
-import { cache } from "react";
-import db from "@/lib/db";
+import { cache } from 'react'
+import db from '@/lib/db'
 
 export const getItem = cache(async (id) => {
-  const item = await db.item.findUnique({ id });
-  return item;
-});
+  const item = await db.item.findUnique({ id })
+  return item
+})
 ```
+
 ## Data Cache
 
 Next.js has a built-in Data Cache that **persists** the result of data fetches across incoming **server requests** and **deployments**. This is possible because Next.js extends the native `fetch` API to allow each request on the server to set its own persistent caching semantics.
@@ -594,5 +596,3 @@ export const dynamic = 'force-static'
 ```
 
 To disable caching at request time, add the `export const dynamicParams = false` option in a route segment. When this config option is used, only paths provided by `generateStaticParams` will be served, and other routes will 404 or match (in the case of [catch-all routes](/docs/app/api-reference/file-conventions/dynamic-routes#catch-all-segments)).
-
-
